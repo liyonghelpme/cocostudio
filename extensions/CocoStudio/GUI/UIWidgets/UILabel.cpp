@@ -207,6 +207,8 @@ void Label::onSizeChanged()
 
 const CCSize& Label::getContentSize() const
 {
+    //CCLog("get ContentSize Error %x %f", _labelRenderer, _labelRenderer->getDimensions().width);
+    
     return _labelRenderer->getContentSize();
 }
 
