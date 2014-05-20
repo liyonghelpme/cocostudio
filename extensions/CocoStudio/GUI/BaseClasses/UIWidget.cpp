@@ -704,6 +704,8 @@ bool Widget::onTouchBegan(CCTouch *touch, CCEvent *unused_event)
             _hitted = true;
         }
     }
+    //listView 接收到了点击事件
+    //CCLog("widget is hitted? %d %s", _hitted, getName());
     if (!_hitted)
     {
         return false;

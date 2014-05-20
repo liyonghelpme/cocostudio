@@ -126,6 +126,9 @@ bool UICCTextField::onTextFieldDetachWithIME(CCTextFieldTTF *pSender)
     return false;
 }
 
+//输入文本的调用顺序是
+//EAGLView IMEDispatch  IMEdelegate  CCTextField  UICCTextField  insertText
+//在CCTextField 中 的insertText 调整显示
 void UICCTextField::insertText(const char * text, int len)
 {
     std::string input_text = text;
@@ -240,6 +243,7 @@ void UICCTextField::openIME()
     CCTextFieldTTF::attachWithIME();
 }
 
+//关闭文本输入框
 void UICCTextField::closeIME()
 {
     CCTextFieldTTF::detachWithIME();

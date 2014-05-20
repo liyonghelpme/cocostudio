@@ -166,6 +166,10 @@ public:
         _textFieldRenderer->isMultiLine = isMul;
     }
     
+    //关闭输入框 当点击屏幕其它地方的时候 调用这个方法
+    void closeIME() {
+        _textFieldRenderer->closeIME();
+    }
 protected:
     virtual bool init();
     virtual void initRenderer();
