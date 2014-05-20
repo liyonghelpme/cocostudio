@@ -75,6 +75,9 @@ public:
     bool getInsertText();
     void setDeleteBackward(bool deleteBackward);
     bool getDeleteBackward();
+    
+    //支持多行输入 return insert 换行符号v
+    //bool isMultiLine;
 protected:
     bool _maxLengthEnabled;
     int _maxLength;
@@ -159,6 +162,9 @@ public:
     void setTextHorizontalAlignment(CCTextAlignment alignment);
     void setTextVerticalAlignment(CCVerticalTextAlignment alignment);
     /*=*/
+    void setMulLine(bool isMul) {
+        _textFieldRenderer->isMultiLine = isMul;
+    }
     
 protected:
     virtual bool init();

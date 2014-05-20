@@ -139,6 +139,7 @@ public:
     virtual const ccColor3B& getColorSpaceHolder();
     virtual void setColorSpaceHolder(const ccColor3B& color);
 
+    bool isMultiLine;
     // input text property
 public:
     virtual void setString(const char *text);

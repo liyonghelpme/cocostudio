@@ -56,6 +56,7 @@ CCTextFieldTTF::CCTextFieldTTF()
 , m_pInputText(new std::string)
 , m_pPlaceHolder(new std::string)   // prevent CCLabelTTF initWithString assertion
 , m_bSecureTextEntry(false)
+, isMultiLine(false)
 {
     m_ColorSpaceHolder.r = m_ColorSpaceHolder.g = m_ColorSpaceHolder.b = 127;
 }
@@ -175,14 +176,20 @@ void CCTextFieldTTF::insertText(const char * text, int len)
 
     // insert \n means input end
     int nPos = sInsert.find('\n');
-    if ((int)sInsert.npos != nPos)
-    {
-        len = nPos;
-        sInsert.erase(nPos);
+    //找到了 换行符号 输入就是 -1  len = -1
+    //支持换行符
+    if (!isMultiLine) {
+        if ((int)sInsert.npos != nPos)
+        {
+            len = nPos;
+            sInsert.erase(nPos);
+        }
     }
-
+    
+    //换行符就不输入文字了
     if (len > 0)
     {
+        //代理处理插入了字符 只在有最长限制的时候
         if (m_pDelegate && m_pDelegate->onTextFieldInsertText(this, sInsert.c_str(), len))
         {
             // delegate doesn't want to insert text
@@ -195,16 +202,19 @@ void CCTextFieldTTF::insertText(const char * text, int len)
         setString(sText.c_str());
     }
 
-    if ((int)sInsert.npos == nPos) {
+    //不是换行符 处理完毕 或者支持多行文本
+    if (isMultiLine || (int)sInsert.npos == nPos) {
         return;
     }
 
+    //代理处理换行符
     // '\n' inserted, let delegate process first
     if (m_pDelegate && m_pDelegate->onTextFieldInsertText(this, "\n", 1))
     {
         return;
     }
 
+    //当点击背后的屏幕的时候 没有在键盘范围则退出场景即可
     // if delegate hasn't processed, detach from IME by default
     detachWithIME();
 }

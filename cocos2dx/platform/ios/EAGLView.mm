@@ -397,7 +397,7 @@ static EAGLView *view = 0;
     {
         [self handleTouchesAfterKeyboardShow];
         //handle Touch
-        return;
+        //return;
     }
     
     int ids[IOS_MAX_TOUCHES_COUNT] = {0};
@@ -418,7 +418,7 @@ static EAGLView *view = 0;
 {
     if (isKeyboardShown_)
     {
-        return;
+        //return;
     }
     int ids[IOS_MAX_TOUCHES_COUNT] = {0};
     float xs[IOS_MAX_TOUCHES_COUNT] = {0.0f};
@@ -438,7 +438,7 @@ static EAGLView *view = 0;
 {
     if (isKeyboardShown_)
     {
-        return;
+        //return;
     }
     
     int ids[IOS_MAX_TOUCHES_COUNT] = {0};

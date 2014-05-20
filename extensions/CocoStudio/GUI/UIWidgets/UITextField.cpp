@@ -54,6 +54,7 @@ UICCTextField::UICCTextField()
 , _detachWithIME(false)
 , _insertText(false)
 , _deleteBackward(false)
+//, isMultiLine(false)
 {
 }
 
@@ -93,10 +94,14 @@ bool UICCTextField::onTextFieldAttachWithIME(CCTextFieldTTF *pSender)
 
 bool UICCTextField::onTextFieldInsertText(CCTextFieldTTF *pSender, const char *text, int nLen)
 {
-    if (nLen == 1 && strcmp(text, "\n") == 0)
-    {
-        return false;
+    //不支持多行
+    if (!isMultiLine) {
+        if (nLen == 1 && strcmp(text, "\n") == 0)
+        {
+            return false;
+        }
     }
+    
     setInsertText(true);
     if (_maxLengthEnabled)
     {
@@ -125,7 +130,7 @@ void UICCTextField::insertText(const char * text, int len)
 {
     std::string input_text = text;
     
-    if (strcmp(text, "\n") != 0)
+    if (isMultiLine || strcmp(text, "\n") != 0)
     {
         if (_maxLengthEnabled)
         {
