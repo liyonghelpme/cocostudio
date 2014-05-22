@@ -3,6 +3,8 @@ from flask import *
 import json
 import time
 from hashlib import md5
+import redis
+import threading
 
 app =  Flask(__name__)
 app.config.from_object("config")
@@ -10,6 +12,22 @@ app.config.from_object("config")
 user = {}
 uid = 1
 uidToName = {}
+messages = []
+
+def fetchMsg():
+    rs = redis.Redis('localhost')
+    ps = rs.pubsub()
+    ps.subscribe('match_1')
+
+    for item in ps.listen():
+        print item['channel'], ':', item['data']
+            
+        
+
+t = threading.Thread(target=fetchMsg)
+t.daemon = True
+t.start()
+
 
 @app.route('/user/login', methods=['POST'])
 def login():
@@ -74,6 +92,77 @@ def head():
     head = user[uidToName[uid]]['head']
     return json.dumps(dict(head=head))
 
+channelInfo = {}
+#获取频道用户信息 主要uid 昵称 头像信息
+@app.route('/getChatInfo', methods=['GET'])
+def getChatInfo():
+    cid = request.args.get('cid', None, type=int)
+    cha = channelInfo.get(cid, [])
+    return json.dumps(dict(channel=cha))
+
+@app.route('/enterChannel', methods=['POST'])
+def enterChannel():
+    uid = request.form.get('uid', None, type=int)
+    cid = request.form.get('cid', None, type=int)
+    users = channelInfo.setdefault(cid, [])
+    users.append({'uid':uid})
+    print 'enterChannel', uid, cid
+    print channelInfo[cid]
+    return json.dumps(dict(state=1))
+
+@app.route('/match/<int:cid>', methods=['POST', 'PUT'])
+def enterC(cid):
+    if request.method == 'POST':
+        uid = request.form.get('userid', None, type=int)
+        users = channelInfo.setdefault(cid, [])
+        users.append({'uid':uid})
+        print 'enterChannel', uid, cid
+        print channelInfo[cid]
+        return json.dumps(dict(state=1))
+    else:
+        uid = request.form.get('userid', None, type=int)
+        #cid = request.form.get('cid', None, type=int)
+        cha = channelInfo.get(cid)
+        if cha != None:
+            i = 0
+            for v in cha:
+                if v['uid'] == uid:
+                    cha.pop(i)
+                    break
+                i += 1
+        return json.dumps(dict(state=1))
+
+
+
+@app.route('/exitChannel', methods=['POST'])
+def exitChannel():
+    uid = request.form.get('uid', None, type=int)
+    cid = request.form.get('cid', None, type=int)
+    cha = channelInfo.get(cid)
+    if cha != None:
+        i = 0
+        for v in cha:
+            if v['uid'] == uid:
+                cha.pop(i)
+                break
+            i += 1
+    return json.dumps(dict(state=1))
+
+@app.route('/getUserCount', methods=['GET'])
+def getUserCount():
+    cid = request.args.get('cid', None, type=int)
+    cha = channelInfo.get(cid)
+    print cid
+    if cha != None:
+        print 'channel not empty'
+        return json.dumps(dict(count=len(cha)))
+
+    return json.dumps(dict(count=0))
+
+
+
+#每个用户加一个timer 回调函数 超过时间没有心跳就认为退出了游戏了
+
 
 
 @app.route('/saveProfile', methods=['POST'])
@@ -97,14 +186,49 @@ def confirmReference():
    return json.dumps(dicti(state=1))
 
 
-@app.route('/match', methods=['GET'])
-def getMatches():   
+@app.route('/match/<int:cid>/user', methods=['GET'])
+def matchuser(cid):
+    return json.dumps(dict(state=1, data=[
+        {'user_id':1, 'real_name':'小明', 'avatar':'abc', 'like_team': 1},
+        {'user_id':2, 'real_name':'小王', 'avatar':'abc', 'like_team': 2},
+        {'user_id':3, 'real_name':'小勇', 'avatar':'abc', 'like_team': 3},
+        ]))
+
+
+@app.route('/match/<int:startTime>/<int:endTime>', methods=['GET'])
+def getMatches(startTime, endTime):   
+    print startTime, endTime
+    '''
     return json.dumps(dict(state=1, matches=[
         {'id':1, 'name1':'巴西', 'name2':'克罗地亚', 'score1':0, 'score2':0, 'week':'周五', 'date':'6月13日', 'time':'04：00', 'title':'世界杯 第1轮', 'online':19}, 
         {'id':2, 'name1':'巴西', 'name2':'美国', 'score1':0, 'score2':0, 'week':'周六', 'date':'6月14日',  'time':'00:00', 'title':'世界杯 第1轮', 'online':20},
         {'id':3, 'name1':'西班牙', 'name2':'荷兰', 'score1':0, 'score2':0, 'week':'周六', 'date':'6月14日',  'time':'03:00', 'title':'世界杯 第1轮', 'online':22},
         {'id':4, 'name1':'智利', 'name2':'澳大利亚', 'score1':0, 'score2':0, 'week':'周六', 'date':'6月14日',  'time':'06:00', 'title':'世界杯 第1轮', 'online':21},
         ]))
+    '''
+
+    return json.dumps(dict(state=1, data=[
+        {'id':1, 'start_time':1399688620000, 'end_time':1399688720000, 'cate_name':'世界杯', 'title':'第一轮', 'host_name':'中国', 'guest_name':'巴西'}, 
+        {'id':2, 'start_time':1399688730000, 'end_time':1399688820000, 'cate_name':'世界杯', 'title':'第一轮', 'host_name':'中国', 'guest_name':'巴西'}, 
+        {'id':3, 'start_time':1399688830000, 'end_time':1399688920000, 'cate_name':'世界杯', 'title':'第一轮', 'host_name':'中国', 'guest_name':'巴西'}, 
+        {'id':4, 'start_time':1399688830000, 'end_time':1399688920000, 'cate_name':'世界杯', 'title':'第一轮', 'host_name':'中国', 'guest_name':'巴西'}, 
+        {'id':5, 'start_time':1399688830000, 'end_time':1399688920000, 'cate_name':'世界杯', 'title':'第一轮', 'host_name':'中国', 'guest_name':'巴西'}, 
+        #{'id':2, 'name1':'巴西', 'name2':'美国', 'score1':0, 'score2':0, 'week':'周六', 'date':'6月14日',  'time':'00:00', 'title':'世界杯 第1轮', 'online':20},
+        #{'id':3, 'name1':'西班牙', 'name2':'荷兰', 'score1':0, 'score2':0, 'week':'周六', 'date':'6月14日',  'time':'03:00', 'title':'世界杯 第1轮', 'online':22},
+        #{'id':4, 'name1':'智利', 'name2':'澳大利亚', 'score1':0, 'score2':0, 'week':'周六', 'date':'6月14日',  'time':'06:00', 'title':'世界杯 第1轮', 'online':21},
+        ]))
+
+import base64
+
+
+@app.route('/message/<int:cid>/<int:startTime>/<int:endTime>', methods=['GET'])
+def message(cid, startTime, endTime):
+    return json.dumps(dict(state=1, data=[
+        {'user_id':1, 'type':'text', 'content':base64.b64encode('我是中国人')},
+        {'user_id':2, 'type':'text', 'content':base64.b64encode('你为什么不来呢')},
+        ]))
+
+
 
 #@app.route('/matches', methods=['GET'])
 #def getMatches():   

@@ -28,6 +28,9 @@ namespace rapidjson {
 	\tparam Encoding Encoding of both source strings and output.
 	\implements Handler
 */
+
+//convert utf8 ---》 unicode
+
 template<typename Stream, typename Encoding = UTF8<>, typename Allocator = MemoryPoolAllocator<> >
 class Writer {
 public:
@@ -168,11 +171,13 @@ protected:
 		for (int i = 0; i < ret; i++)
 			stream_.Put(buffer[i]);
 	}
-
+    
+    //修改支持 中文编码为 \uxxxx 格式
 	void WriteString(const Ch* str, SizeType length)  {
 		static const char hexDigits[] = "0123456789ABCDEF";
 		static const char escape[256] = {
 #define Z16 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+#define B16 'b','b','b','b','b','b','b','b','b','b','b','b','b','b','b','b'
 			//0    1    2    3    4    5    6    7    8    9    A    B    C    D    E    F
 			'u', 'u', 'u', 'u', 'u', 'u', 'u', 'u', 'b', 't', 'n', 'u', 'f', 'r', 'u', 'u', // 00
 			'u', 'u', 'u', 'u', 'u', 'u', 'u', 'u', 'u', 'u', 'u', 'u', 'u', 'u', 'u', 'u', // 10
@@ -180,27 +185,108 @@ protected:
 			Z16, Z16,																		// 30~4F
 			  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,'\\',   0,   0,   0, // 50
 			Z16, Z16, Z16, Z16, Z16, Z16, Z16, Z16, Z16, Z16								// 60~FF
+            //B16, B16, B16, B16, B16, B16, B16, B16, //80 ~FF
+#undef B16
 #undef Z16
+            
 		};
 
 		stream_.Put('\"');
+        /*
+        GenericStringStream<UTF8<> > is(str);
+        while (is.Tell() < length) {
+            const Ch c = is.Peek();
+            //单字节读入的流 或者 < 256  且需要 escape
+            if ((sizeof(Ch) == 1 || (unsigned)c < 256) && escape[(unsigned char)c])  {
+                stream_.Put('\\');
+                if (escape[(unsigned char)c] == 'u') {
+                    is.Take();
+                    stream_.Put(escape[(unsigned char)c]);
+                    stream_.Put('0');
+                    stream_.Put('0');
+                    stream_.Put(hexDigits[(unsigned char)c >> 4]);
+                    stream_.Put(hexDigits[(unsigned char)c & 0xF]);
+                }
+                else if (escape[(unsigned char)c] == 'b') {
+                    unsigned codepoint;
+                    if (!UTF8<>::Decode(&is, &codepoint)) {
+                        // Error
+                    }
+                    else
+                    {
+                        stream_.Put('u');
+                        stream_.Put(hexDigits[(codepoint & 0xf000) >> 12]);
+                        stream_.Put(hexDigits[(codepoint & 0x0f00) >> 8]);
+                        stream_.Put(hexDigits[(codepoint & 0x00f0) >> 4]);
+                        stream_.Put(hexDigits[(codepoint & 0x000f) >> 0]);
+                    }
+                }
+                else {
+                    is.Take();
+                    stream_.Put(escape[(unsigned char)c]);
+                    
+                }
+            }
+            else {
+                stream_.Put(c);
+            }
+                //Transcoder<SourceEncoding, TargetEncoding>::Transcode(is, os_);
+        }
+        */
+        
+        // 原始代码 https://github.com/Kanma/rapidjson/blob/master/writer.h
+        
 		for (const Ch* p = str; p != str + length; ++p) {
 			if ((sizeof(Ch) == 1 || *p < 256) && escape[(unsigned char)*p])  {
 				stream_.Put('\\');
-				stream_.Put(escape[(unsigned char)*p]);
+                
+                /*
+                if (escape[(unsigned char)*p] == 'u') {
+                    stream_.Put(escape[(unsigned char)*p]);
+                    stream_.Put('0');
+					stream_.Put('0');
+					stream_.Put(hexDigits[(*p) >> 4]);
+					stream_.Put(hexDigits[(*p) & 0xF]);
+                } else if(escape[(unsigned char )*p] == 'b') {
+                    //不进行 错误检查
+                    unsigned codepoint;
+                    
+                    if (!UTF8<>::Decode(p, &codepoint)) {
+                        // Error
+                    }
+                    else
+                    {
+                    
+                        stream_.Put('u');
+                        stream_.Put(hexDigits[(codepoint & 0xf000) >> 12]);
+                        stream_.Put(hexDigits[(codepoint & 0x0f00) >> 8]);
+                        stream_.Put(hexDigits[(codepoint & 0x00f0) >> 4]);
+                        stream_.Put(hexDigits[(codepoint & 0x000f) >> 0]);
+                    }
+                } else {
+                    stream_.Put(escape[(unsigned char)*p]);
+                }
+                */
+                
+  				stream_.Put(escape[(unsigned char)*p]);
 				if (escape[(unsigned char)*p] == 'u') {
 					stream_.Put('0');
 					stream_.Put('0');
 					stream_.Put(hexDigits[(*p) >> 4]);
 					stream_.Put(hexDigits[(*p) & 0xF]);
 				}
-			}
-			else
-				stream_.Put(*p);
+  			}
+			else {
+				
+                stream_.Put(*p);
+            }
+         
 		}
+        
 		stream_.Put('\"');
 	}
 
+    
 	void WriteStartObject()	{ stream_.Put('{'); }
 	void WriteEndObject()	{ stream_.Put('}'); }
 	void WriteStartArray()	{ stream_.Put('['); }
